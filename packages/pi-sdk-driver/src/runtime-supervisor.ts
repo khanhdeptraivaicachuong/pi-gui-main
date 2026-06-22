@@ -8,7 +8,9 @@ import {
   parseFrontmatter,
   stripFrontmatter,
   type ExtensionFactory,
+  type LoadExtensionsResult,
   type PathMetadata,
+  type ProviderConfig,
   type ResolvedPaths,
   type ResolvedResource,
 } from "@earendil-works/pi-coding-agent";
@@ -353,6 +355,12 @@ export class RuntimeSupervisor implements RuntimeResourceDriver {
       await resourceLoader.reload();
     }
 
+    // ponytail: extension factories call pi.registerProvider() during load, but the registration
+    // is queued in pendingProviderRegistrations instead of going to the model registry directly.
+    // bindCore() normally flushes these later (during session init), but buildProviderRecords()
+    // reads from the model registry RIGHT AFTER this reload. So we must flush here.
+    this.flushPendingProviderRegistrations(resourceLoader.getExtensions());
+
     const context: RuntimeContext = {
       workspace,
       settingsManager,
@@ -361,6 +369,27 @@ export class RuntimeSupervisor implements RuntimeResourceDriver {
     };
     this.contexts.set(workspace.workspaceId, context);
     return context;
+  }
+
+  private flushPendingProviderRegistrations(extensionsResult: LoadExtensionsResult): void {
+    const { runtime } = extensionsResult;
+    for (const { name, config } of runtime.pendingProviderRegistrations) {
+      try {
+        this.modelRegistry.registerProvider(name, config as ProviderConfig);
+        console.log(`[runtime-supervisor] Flushed pending provider registration: ${name}`);
+      } catch (error) {
+        console.warn(
+          `[runtime-supervisor] Failed to flush pending provider registration for "${name}": ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+    runtime.pendingProviderRegistrations = [];
+    // Replace registerProvider to call modelRegistry directly for any future calls
+    runtime.registerProvider = (name: string, config: unknown) => {
+      this.modelRegistry.registerProvider(name, config as ProviderConfig);
+    };
   }
 
   private async buildSnapshot(context: RuntimeContext): Promise<RuntimeSnapshot> {
