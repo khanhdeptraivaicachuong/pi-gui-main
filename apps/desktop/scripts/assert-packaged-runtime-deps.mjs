@@ -75,7 +75,7 @@ try {
   await verifyPackagedRuntimeImports(extractedDir);
   await verifyNativeNodePty(asarPath);
 } finally {
-  rmSync(extractedDir, { recursive: true, force: true });
+  rmSync(extractedDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 500 });
 }
 
 console.log(`Verified packaged runtime dependencies in ${asarPath}`);
