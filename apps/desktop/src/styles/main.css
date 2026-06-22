@@ -3442,6 +3442,13 @@ mark.thread-find-active {
   border-color: var(--line);
 }
 
+:root.dark .extension-dialog__editor {
+  background: var(--surface-muted);
+  border-color: var(--line);
+  color: var(--text-strong);
+  caret-color: var(--text-strong);
+}
+
 :root.dark .tree-modal {
   background: var(--surface);
   border-color: var(--line);

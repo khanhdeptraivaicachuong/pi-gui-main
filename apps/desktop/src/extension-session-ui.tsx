@@ -197,6 +197,7 @@ export function ExtensionDialog({
           <textarea
             autoFocus
             className="extension-dialog__editor"
+            spellCheck={false}
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
           />
