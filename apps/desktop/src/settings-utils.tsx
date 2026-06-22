@@ -47,9 +47,9 @@ export function sectionDescription(section: SettingsSection, workspaceName: stri
     case "models":
       return "Choose the default model and which models appear in pickers.";
     case "computer-use":
-      return "Check local Mac control readiness and permission state.";
+      return "Control your desktop from pi. macOS uses native Accessibility APIs; other platforms use OMP integration.";
     case "notifications":
-      return "Manage both macOS notification access and which background events should alert you.";
+      return "Manage desktop notification access and which background events should alert you.";
     default:
       return "Keep the high-value app and runtime controls close to hand.";
   }

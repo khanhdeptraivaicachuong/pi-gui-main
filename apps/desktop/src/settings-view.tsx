@@ -28,6 +28,7 @@ interface SettingsViewProps {
   readonly integratedTerminalShell: string;
   readonly themeMode: "system" | "light" | "dark";
   readonly enableTransparency: boolean;
+  readonly platform: NodeJS.Platform;
   readonly onSetModelSettingsScopeMode: (mode: ModelSettingsScopeMode) => void;
   readonly onSetDefaultModel: (provider: string, modelId: string) => void;
   readonly onSetThinkingLevel: (thinkingLevel: RuntimeSettingsSnapshot["defaultThinkingLevel"]) => void;
@@ -61,6 +62,7 @@ export function SettingsView({
   integratedTerminalShell,
   themeMode,
   enableTransparency,
+  platform,
   onSetModelSettingsScopeMode,
   onSetDefaultModel,
   onSetThinkingLevel,
@@ -155,6 +157,7 @@ export function SettingsView({
             <SettingsComputerUseSection
               status={computerUseStatus}
               pending={computerUseStatusPending}
+              platform={platform}
               onRefresh={onRefreshComputerUseStatus}
               onSetLockedUseEnabled={onSetLockedComputerUseEnabled}
               onOpenPrivacySettings={onOpenComputerUsePrivacySettings}
@@ -169,6 +172,7 @@ export function SettingsView({
               onSetNotificationPreferences={onSetNotificationPreferences}
               onRequestNotificationPermission={onRequestNotificationPermission}
               onOpenSystemNotificationSettings={onOpenSystemNotificationSettings}
+              platform={platform}
             />
           ) : null}
         </div>

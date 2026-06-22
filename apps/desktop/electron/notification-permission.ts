@@ -256,7 +256,11 @@ async function openSystemNotificationSettingsInternal(): Promise<void> {
   }
 
   if (process.platform !== "darwin") {
-    await shell.openExternal("https://support.apple.com/guide/mac-help/change-notifications-settings-mh40583/mac");
+    if (process.platform === "win32") {
+      await shell.openExternal("ms-settings:notifications");
+    } else {
+      await shell.openExternal("https://support.apple.com/guide/mac-help/change-notifications-settings-mh40583/mac");
+    }
     return;
   }
 

@@ -17,6 +17,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { DesktopAppStore, type DesktopAppViewState } from "./app-store";
 import { configureComputerUseRuntime, runComputerUseLockedUseSelfTest } from "./computer-use-runtime";
+import { createCommandCodeExtension } from "./commandcode-provider";
 import {
   getComputerUseStatus,
   openComputerUsePrivacySettings,
@@ -33,7 +34,7 @@ import { checkForUpdate, initUpdateChecker } from "./update-checker";
 import { ThemeManager } from "./theme-manager";
 import { TerminalService } from "./terminal-service";
 import type { AppView, DesktopAppState, ThemeMode } from "../src/desktop-state";
-import { desktopIpc, getDesktopCommandFromShortcut } from "../src/ipc";
+import { desktopIpc, getDesktopCommandFromShortcut, type DesktopComputerUseStatus } from "../src/ipc";
 import { SUPPORTED_COMPOSER_IMAGE_TYPES } from "../src/composer-attachments";
 import type {
   ComposerAttachment,
@@ -631,6 +632,21 @@ async function stateForWindow(window?: BrowserWindow | null): Promise<DesktopApp
   return store.getState();
 }
 
+function windowsComputerUseStatus(): DesktopComputerUseStatus {
+  return {
+    helperAvailable: false,
+    desktop: "unknown",
+    cursor: "unknown",
+    accessibility: "unknown",
+    screenRecording: "unknown",
+    lockedUse: "unknown",
+    lockedUseInstaller: "not-configured",
+    message: process.platform === "darwin"
+      ? "Computer Use helper is not running."
+      : "Computer Use on this platform is available through pi's OMP integration. See pi docs for details.",
+  };
+}
+
 async function pickWorkspacePathViaDialog(parentWindow?: BrowserWindow | null): Promise<string | undefined> {
   const window = resolveDialogWindow(parentWindow);
   const result = window
@@ -822,12 +838,27 @@ app.whenReady().then(async () => {
     resourcesPath: process.resourcesPath,
     execPath: process.execPath,
   });
+
+  // ponytail: built-in Command Code provider — models fetched live at startup
+  const commandCodeExtensionFactory = await createCommandCodeExtension();
+
+  const driverOptions = {
+    extensionFactories: [
+      ...(computerUseRuntimeDriverOptions?.extensionFactories ?? []),
+      commandCodeExtensionFactory,
+    ],
+    inlineExtensionMetadata: [
+      ...(computerUseRuntimeDriverOptions?.inlineExtensionMetadata ?? []),
+      { displayName: "Command Code", description: "Multi-model provider via commandcode.ai" },
+    ],
+  };
+
   store = new DesktopAppStore({
     userDataDir: configuredUserDataDir,
     initialWorkspacePaths: resolveInitialWorkspacePaths(),
     getWindow: () => mainWindow,
     shouldKeepSessionDialogs: (sessionRef) => isSessionVisibleInAnotherWindow(sessionRef),
-    ...(computerUseRuntimeDriverOptions ? { driverOptions: computerUseRuntimeDriverOptions } : {}),
+    driverOptions,
     generateThreadTitleOverride: async (workspace, options) => generateThreadTitleOverride?.(workspace, options),
   });
   await store.initialize();
@@ -1068,12 +1099,14 @@ app.whenReady().then(async () => {
   ipcMain.handle(desktopIpc.openSystemNotificationSettings, () =>
     notificationPermissionService?.openSystemSettings() ?? Promise.resolve(),
   );
-  ipcMain.handle(desktopIpc.getComputerUseStatus, () => getComputerUseStatus());
+  ipcMain.handle(desktopIpc.getComputerUseStatus, () =>
+    process.platform === "darwin" ? getComputerUseStatus() : Promise.resolve(windowsComputerUseStatus()),
+  );
   ipcMain.handle(desktopIpc.setLockedComputerUseEnabled, (_event, enabled: boolean) =>
-    setLockedComputerUseEnabled(enabled),
+    process.platform === "darwin" ? setLockedComputerUseEnabled(enabled) : Promise.resolve(windowsComputerUseStatus()),
   );
   ipcMain.handle(desktopIpc.openComputerUsePrivacySettings, (_event, pane) =>
-    openComputerUsePrivacySettings(pane),
+    process.platform === "darwin" ? openComputerUsePrivacySettings(pane) : Promise.resolve(),
   );
   ipcMain.handle(desktopIpc.createSession, (event, input: CreateSessionInput) =>
     runWindowScopedForEvent(event, () => store.createSession(input)),

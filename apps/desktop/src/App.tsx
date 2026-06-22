@@ -1979,6 +1979,7 @@ export default function App() {
           onSetEnableTransparency={(enabled) => {
             void updateSnapshot(api, setSnapshot, () => api.setEnableTransparency(enabled));
           }}
+          platform={api?.platform ?? "win32"}
         />
       </SecondarySurface>
     );

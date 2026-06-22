@@ -27,6 +27,7 @@ export type {
   SessionRef,
   SessionSnapshot,
   SessionStatus,
+  SessionUsageStats,
   SessionTreeNodeKind,
   SessionTreeNodeSnapshot,
   SessionTreeSnapshot,

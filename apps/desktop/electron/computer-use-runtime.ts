@@ -71,6 +71,11 @@ export interface ComputerUseLockedUseSelfTestResult {
 export async function configureComputerUseRuntime(
   options: ConfigureComputerUseRuntimeOptions,
 ): Promise<ComputerUseRuntimeDriverOptions | undefined> {
+  if (process.platform !== "darwin") {
+    // Computer Use native helper is macOS-only, but show the settings page.
+    return undefined;
+  }
+
   await removeComputerUsePackageEntry(resolveAgentDir(), resolveComputerUsePackageDir(options));
 
   if (process.env[disableEnv] === "1") {

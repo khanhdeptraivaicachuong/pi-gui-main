@@ -27,6 +27,20 @@ export interface SessionQueuedMessage {
   readonly updatedAt: Timestamp;
 }
 
+export interface SessionUsageStats {
+  readonly tokens: {
+    readonly input: number;
+    readonly output: number;
+    readonly total: number;
+  };
+  readonly cost: number;
+  readonly context?: {
+    readonly tokens: number | null;
+    readonly contextWindow: number;
+    readonly percent: number | null;
+  };
+}
+
 export interface SessionSnapshot {
   readonly ref: SessionRef;
   readonly workspace: WorkspaceRef;
@@ -38,6 +52,7 @@ export interface SessionSnapshot {
   readonly config?: SessionConfig;
   readonly runningRunId?: RunId;
   readonly queuedMessages?: readonly SessionQueuedMessage[];
+  readonly usageStats?: SessionUsageStats;
 }
 
 export interface SessionImageAttachment {

@@ -8,6 +8,7 @@ import { SettingsGroup, SettingsInfoRow, SettingsRow } from "./settings-utils";
 interface SettingsComputerUseSectionProps {
   readonly status?: DesktopComputerUseStatus;
   readonly pending: boolean;
+  readonly platform: NodeJS.Platform;
   readonly onRefresh: () => void;
   readonly onSetLockedUseEnabled: (enabled: boolean) => void;
   readonly onOpenPrivacySettings: (pane: DesktopComputerUsePrivacyPane) => void;
@@ -16,10 +17,24 @@ interface SettingsComputerUseSectionProps {
 export function SettingsComputerUseSection({
   status,
   pending,
+  platform,
   onRefresh,
   onSetLockedUseEnabled,
   onOpenPrivacySettings,
 }: SettingsComputerUseSectionProps) {
+  if (platform !== "darwin") {
+    return (
+      <SettingsGroup title="Computer Use" description="Computer Use lets pi control your desktop. On macOS this uses native Accessibility and Screen Recording APIs.">
+        <SettingsRow
+          title="Platform support"
+          description={platform === "win32" ? "Computer Use on Windows is available through pi's OMP integration. See pi docs for OMP Windows Computer Use setup." : `Computer Use is currently available on macOS and via OMP on other platforms.`}
+        >
+          <span className="settings-row__value">{platform === "win32" ? "Via OMP" : "macOS required"}</span>
+        </SettingsRow>
+      </SettingsGroup>
+    );
+  }
+
   return (
     <>
       <SettingsGroup title="Status">

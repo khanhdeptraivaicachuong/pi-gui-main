@@ -1,4 +1,4 @@
-import type { HostUiRequest, SessionConfig } from "@pi-gui/session-driver";
+import type { HostUiRequest, SessionConfig, SessionUsageStats } from "@pi-gui/session-driver";
 import type { ModelSettingsSnapshot, RuntimeCommandRecord, RuntimeSnapshot } from "@pi-gui/session-driver/runtime-types";
 export type SessionStatus = "idle" | "running" | "failed";
 export type { SessionRole, TranscriptMessage } from "./timeline-types";
@@ -66,6 +66,7 @@ export interface SessionRecord {
   readonly runningSince?: string;
   readonly hasUnseenUpdate: boolean;
   readonly config?: SessionConfig;
+  readonly usageStats?: SessionUsageStats;
 }
 
 export interface SelectedTranscriptRecord {

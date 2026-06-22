@@ -7,6 +7,7 @@ interface SettingsNotificationsSectionProps {
   readonly notificationPermissionStatus: DesktopNotificationPermissionStatus;
   readonly notificationPermissionPending: boolean;
   readonly onSetNotificationPreferences: (preferences: Partial<NotificationPreferences>) => void;
+  readonly platform: NodeJS.Platform;
   readonly onRequestNotificationPermission: () => void;
   readonly onOpenSystemNotificationSettings: () => void;
 }
@@ -16,19 +17,21 @@ export function SettingsNotificationsSection({
   notificationPermissionStatus,
   notificationPermissionPending,
   onSetNotificationPreferences,
+  platform,
   onRequestNotificationPermission,
   onOpenSystemNotificationSettings,
 }: SettingsNotificationsSectionProps) {
+  const isMac = platform === "darwin";
   const statusLabel = labelForPermissionStatus(notificationPermissionStatus);
-  const statusDescription = descriptionForPermissionStatus(notificationPermissionStatus);
-  const showAskMacOs = notificationPermissionStatus === "default";
-  const showOpenSystemSettings = notificationPermissionStatus === "denied";
+  const statusDescription = descriptionForPermissionStatus(notificationPermissionStatus, isMac);
+  const showAskMacOs = isMac && notificationPermissionStatus === "default";
+  const showOpenSystemSettings = isMac && notificationPermissionStatus === "denied";
   const showRecoveryActions = showAskMacOs || showOpenSystemSettings;
 
   return (
     <>
-      <SettingsGroup title="System" description="macOS decides whether pi-gui can show desktop notifications at all.">
-        <SettingsRow title="macOS notification access" description={statusDescription}>
+      <SettingsGroup title="System" description={isMac ? "macOS decides whether pi-gui can show desktop notifications at all." : "Desktop notification availability is reported by Electron on this platform."}>
+        <SettingsRow title={isMac ? "macOS notification access" : "Desktop notification support"} description={statusDescription}>
           <span className="settings-row__value">{statusLabel}</span>
         </SettingsRow>
         {showRecoveryActions ? (
@@ -66,7 +69,7 @@ export function SettingsNotificationsSection({
         ) : null}
       </SettingsGroup>
 
-      <SettingsGroup title="In-app alerts" description="Choose which background events should try to notify once macOS access is enabled.">
+      <SettingsGroup title="In-app alerts" description={isMac ? "Choose which background events should try to notify once macOS access is enabled." : "Choose which background events should try to notify when desktop notifications are supported."}>
         <SettingsRow title="Background completion" description="Notify when a background session finishes.">
           <input
             aria-label="Background completion"
@@ -111,7 +114,12 @@ function labelForPermissionStatus(status: DesktopNotificationPermissionStatus): 
   }
 }
 
-function descriptionForPermissionStatus(status: DesktopNotificationPermissionStatus): string {
+function descriptionForPermissionStatus(status: DesktopNotificationPermissionStatus, isMac: boolean): string {
+  if (!isMac) {
+    return status === "unsupported"
+      ? "Desktop notifications are unavailable on this system."
+      : "pi-gui will use the platform notification support exposed by Electron.";
+  }
   switch (status) {
     case "granted":
       return "macOS will allow pi-gui to show desktop notifications for background thread updates.";

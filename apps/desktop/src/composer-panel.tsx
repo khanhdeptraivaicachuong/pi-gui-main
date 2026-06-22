@@ -181,6 +181,7 @@ export function ComposerPanel({
                     onSetModel={onSetModel}
                     onSetThinking={onSetThinking}
                   />
+                  <span className="composer__usage" data-testid="composer-usage">{formatUsageStats(selectedSession.usageStats)}</span>
                 </div>
                 <div className="composer__actions">
                   <button
@@ -212,4 +213,21 @@ export function ComposerPanel({
       </div>
     </footer>
   );
+}
+
+function formatUsageStats(stats: SessionRecord["usageStats"]): string {
+  const context = stats?.context;
+  const percent = context?.percent === null || context?.percent === undefined ? 0 : Math.round(context.percent);
+  const contextWindow = context?.contextWindow ? formatCompactNumber(context.contextWindow) : "—";
+  const input = stats?.tokens.input ?? 0;
+  const output = stats?.tokens.output ?? 0;
+  const cost = stats?.cost ?? 0;
+  return `${percent}%/${contextWindow} | ↑${formatCompactNumber(input)} ↓${formatCompactNumber(output)} | $${cost.toFixed(3)}`;
+}
+
+function formatCompactNumber(value: number): string {
+  if (!Number.isFinite(value)) return "0";
+  if (value >= 1_000_000) return `${Math.round(value / 1_000_000)}m`;
+  if (value >= 1_000) return `${Math.round(value / 1_000)}k`;
+  return String(Math.max(0, Math.round(value)));
 }
