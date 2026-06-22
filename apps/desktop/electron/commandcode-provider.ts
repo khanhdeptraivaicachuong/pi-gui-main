@@ -34,20 +34,34 @@ interface CommandCodeModelResponse {
   readonly models?: CommandCodeModel[];
 }
 
+const FETCH_TIMEOUT_MS = 10_000;
+
 async function fetchCommandCodeModels(): Promise<CommandCodeModel[]> {
-  const response = await fetch(COMMANDCODE_MODELS_URL, {
-    headers: { "User-Agent": "pi-gui-desktop/0.1" },
-  });
-  if (!response.ok) {
-    console.warn(`[commandcode] Models endpoint returned ${response.status}, using static model list.`);
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    try {
+      const response = await fetch(COMMANDCODE_MODELS_URL, {
+        signal: controller.signal,
+        headers: { "User-Agent": "pi-gui-desktop/0.1" },
+      });
+      if (!response.ok) {
+        console.warn(`[commandcode] Models endpoint returned ${response.status}, using static model list.`);
+        return getDefaultModels();
+      }
+      const data = (await response.json()) as CommandCodeModelResponse;
+      if (!Array.isArray(data.models) || data.models.length === 0) {
+        console.warn("[commandcode] Models endpoint returned empty list, using static model list.");
+        return getDefaultModels();
+      }
+      return data.models;
+    } finally {
+      clearTimeout(timeout);
+    }
+  } catch (error) {
+    console.warn(`[commandcode] Failed to fetch models (${error instanceof Error ? error.message : error}), using static model list.`);
     return getDefaultModels();
   }
-  const data = (await response.json()) as CommandCodeModelResponse;
-  if (!Array.isArray(data.models) || data.models.length === 0) {
-    console.warn("[commandcode] Models endpoint returned empty list, using static model list.");
-    return getDefaultModels();
-  }
-  return data.models;
 }
 
 async function resolveCommandCodeApiKey(): Promise<string | undefined> {
@@ -96,6 +110,7 @@ function getDefaultModels(): CommandCodeModel[] {
 // The old createCommandCodeExtension() returned an object { name, activate, deactivate } which
 // caused loadExtensionFromFactory to throw `TypeError: factory is not a function` (caught silently).
 export const commandCodeExtensionFactory: ExtensionFactory = async (pi) => {
+  console.log("[commandcode] Factory invoked — registering provider");
   const apiKey = await resolveCommandCodeApiKey();
   const models = await fetchCommandCodeModels();
 
@@ -124,4 +139,5 @@ export const commandCodeExtensionFactory: ExtensionFactory = async (pi) => {
       maxTokens: model.maxTokens,
     })),
   });
+  console.log(`[commandcode] Provider registered with ${models.length} models`);
 };

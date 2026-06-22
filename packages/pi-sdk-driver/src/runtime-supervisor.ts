@@ -842,6 +842,7 @@ async function readPackageMetadata(packageRoot: string): Promise<PackageMetadata
 const DESKTOP_API_KEY_PROVIDER_IDS = new Set([
   "azure-openai-responses",
   "cerebras",
+  "commandcode",
   "google",
   "groq",
   "huggingface",
