@@ -27,3 +27,9 @@ jobs:
 
       - name: Verify packaged runtime dependencies
         run: pnpm --dir apps/desktop run verify:packaged-runtime-deps:win
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: pi-gui-win-x64
+          path: apps/desktop/release/*.exe
