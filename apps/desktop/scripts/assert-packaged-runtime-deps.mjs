@@ -75,7 +75,11 @@ try {
   await verifyPackagedRuntimeImports(extractedDir);
   await verifyNativeNodePty(asarPath);
 } finally {
-  rmSync(extractedDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 500 });
+  try {
+    rmSync(extractedDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 500 });
+  } catch (err) {
+    console.warn(`Warning: could not fully clean temp directory ${extractedDir}: ${err.message}`);
+  }
 }
 
 console.log(`Verified packaged runtime dependencies in ${asarPath}`);

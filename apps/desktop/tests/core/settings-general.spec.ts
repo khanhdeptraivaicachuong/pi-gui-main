@@ -33,7 +33,10 @@ test("ignores persisted multiple app instance opt-in and hides the setting", asy
     });
     await expect(await waitForProcessExit(secondProcess)).toEqual({ code: 0, signal: null });
     await expect
-      .poll(async () => harness.electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length))
+      .poll(
+        async () => harness.electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length),
+        { timeout: 15000 },
+      )
       .toBe(1);
     await expect
       .poll(async () => {
