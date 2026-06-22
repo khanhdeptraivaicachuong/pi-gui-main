@@ -92,44 +92,36 @@ function getDefaultModels(): CommandCodeModel[] {
   ];
 }
 
-export async function createCommandCodeExtension(): Promise<ReturnType<ExtensionFactory>> {
+// ponytail: ExtensionFactory is (pi: ExtensionAPI) => void | Promise<void> — a function, not an object.
+// The old createCommandCodeExtension() returned an object { name, activate, deactivate } which
+// caused loadExtensionFromFactory to throw `TypeError: factory is not a function` (caught silently).
+export const commandCodeExtensionFactory: ExtensionFactory = async (pi) => {
   const apiKey = await resolveCommandCodeApiKey();
+  const models = await fetchCommandCodeModels();
 
-  return {
-    name: "commandcode-provider",
-    description: "Command Code provider for pi-gui",
-    async activate(pi) {
-      const models = await fetchCommandCodeModels();
-
-      // ponytail: using pi's native provider registration
-      pi.registerProvider("commandcode", {
-        name: "Command Code",
-        baseUrl: COMMANDCODE_API_BASE,
-        apiKey: apiKey ?? "$COMMANDCODE_API_KEY",
-        authHeader: true,
-        api: "anthropic",
-        headers: {
-          "User-Agent": "pi-gui-desktop/0.1",
-        },
-        // ponytail: OAuth with browser redirect, add when interactive auth is needed
-        models: models.map((model) => ({
-          id: model.id,
-          name: model.name,
-          reasoning: model.reasoning ?? false,
-          input: ["text"] as const,
-          cost: {
-            input: 0,
-            output: 0,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-          contextWindow: model.contextWindow,
-          maxTokens: model.maxTokens,
-        })),
-      });
+  pi.registerProvider("commandcode", {
+    name: "Command Code",
+    baseUrl: COMMANDCODE_API_BASE,
+    apiKey: apiKey ?? "$COMMANDCODE_API_KEY",
+    authHeader: true,
+    api: "anthropic",
+    headers: {
+      "User-Agent": "pi-gui-desktop/0.1",
     },
-    deactivate() {
-      // Nothing to clean up.
-    },
-  };
-}
+    // ponytail: OAuth with browser redirect, add when interactive auth is needed
+    models: models.map((model) => ({
+      id: model.id,
+      name: model.name,
+      reasoning: model.reasoning ?? false,
+      input: ["text"] as const,
+      cost: {
+        input: 0,
+        output: 0,
+        cacheRead: 0,
+        cacheWrite: 0,
+      },
+      contextWindow: model.contextWindow,
+      maxTokens: model.maxTokens,
+    })),
+  });
+};

@@ -17,7 +17,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { DesktopAppStore, type DesktopAppViewState } from "./app-store";
 import { configureComputerUseRuntime, runComputerUseLockedUseSelfTest } from "./computer-use-runtime";
-import { createCommandCodeExtension } from "./commandcode-provider";
+import { commandCodeExtensionFactory } from "./commandcode-provider";
 import {
   getComputerUseStatus,
   openComputerUsePrivacySettings,
@@ -838,9 +838,6 @@ app.whenReady().then(async () => {
     resourcesPath: process.resourcesPath,
     execPath: process.execPath,
   });
-
-  // ponytail: built-in Command Code provider — models fetched live at startup
-  const commandCodeExtensionFactory = await createCommandCodeExtension();
 
   const driverOptions = {
     extensionFactories: [
