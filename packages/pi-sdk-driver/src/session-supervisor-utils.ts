@@ -7,9 +7,22 @@ import type {
   SessionRef,
   SessionSnapshot,
   SessionStatus,
-  SessionUsageStats,
   WorkspaceRef,
 } from "@pi-gui/session-driver";
+
+export interface UsageStats {
+  readonly tokens: {
+    readonly input: number;
+    readonly output: number;
+    readonly total: number;
+  };
+  readonly cost: number;
+  readonly context?: {
+    readonly tokens: number | null;
+    readonly contextWindow: number;
+    readonly percent: number | null;
+  };
+}
 import type { SessionQueuedMessage } from "@pi-gui/session-driver/types";
 import type { SessionTranscriptAttachment, SessionTranscriptMessage } from "./transcript.js";
 
@@ -27,10 +40,9 @@ export interface SnapshotSource {
   readonly config: SessionConfig | undefined;
   readonly runningRunId: string | undefined;
   readonly queuedMessages: readonly SessionQueuedMessage[];
-  readonly session?: { getSessionStats(): { tokens: { input: number; output: number; total: number }; cost: number; contextUsage?: SessionUsageStats["context"] } };
 }
 
-export function buildSnapshot(source: SnapshotSource): SessionSnapshot {
+export function buildSnapshot(source: SnapshotSource, sessionStats?: UsageStats): SessionSnapshot {
   return {
     ref: { ...source.ref },
     workspace: { ...source.workspace },
@@ -53,19 +65,7 @@ export function buildSnapshot(source: SnapshotSource): SessionSnapshot {
           })),
         }
       : {}),
-    ...(source.session ? { usageStats: toUsageStats(source.session.getSessionStats()) } : {}),
-  };
-}
-
-function toUsageStats(stats: ReturnType<NonNullable<SnapshotSource["session"]>["getSessionStats"]>): SessionUsageStats {
-  return {
-    tokens: {
-      input: stats.tokens.input,
-      output: stats.tokens.output,
-      total: stats.tokens.total,
-    },
-    cost: stats.cost,
-    ...(stats.contextUsage ? { context: stats.contextUsage } : {}),
+    ...(sessionStats ? { usageStats: { ...sessionStats } } : {}),
   };
 }
 

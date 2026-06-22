@@ -54,6 +54,7 @@ import { normalizeRuntimeCommandName, skillCommandName } from "./runtime-command
 import {
   buildSnapshot,
   createWorkspaceRef,
+  type UsageStats,
   deriveSessionConfig,
   deriveWorkspaceTitle,
   determineRunOutcome,
@@ -338,7 +339,7 @@ export class SessionSupervisor {
     this.records.set(sessionKey(record.ref), record);
     await this.bindSessionRuntime(record);
     await this.persistSnapshot(record);
-    const snapshot = buildSnapshot(record);
+    const snapshot = buildSnapshot(record, sessionStatsForRecord(record));
     await this.emit(record, {
       type: "sessionOpened",
       sessionRef: record.ref,
@@ -351,7 +352,7 @@ export class SessionSupervisor {
   async openSession(sessionRef: SessionRef): Promise<SessionSnapshot> {
     const record = await this.ensureRecord(sessionRef);
     await this.touchWorkspace(record.workspace);
-    const snapshot = buildSnapshot(record);
+    const snapshot = buildSnapshot(record, sessionStatsForRecord(record));
     await this.emit(record, {
       type: "sessionOpened",
       sessionRef: record.ref,
@@ -1385,7 +1386,7 @@ export class SessionSupervisor {
                 type: "runCompleted" as const,
                 sessionRef: record.ref,
                 timestamp,
-                snapshot: buildSnapshot(record),
+                snapshot: buildSnapshot(record, sessionStatsForRecord(record)),
               }
             : {
                 type: "runFailed" as const,
@@ -1416,7 +1417,7 @@ export class SessionSupervisor {
   }
 
   private async persistSnapshot(record: ManagedSessionRecord): Promise<void> {
-    const snapshot = buildSnapshot(record);
+    const snapshot = buildSnapshot(record, sessionStatsForRecord(record));
     await this.catalogs.sessions.upsertSession({
       sessionRef: snapshot.ref,
       workspaceId: snapshot.ref.workspaceId,
@@ -1501,7 +1502,7 @@ export class SessionSupervisor {
     existingEntry?: SessionCatalogSnapshot["sessions"][number],
   ): SessionCatalogSnapshot["sessions"][number] {
     const runtimeSnapshot =
-      runtimeRecord && runtimeRecord.session && !runtimeRecord.closed ? buildSnapshot(runtimeRecord) : undefined;
+      runtimeRecord && runtimeRecord.session && !runtimeRecord.closed ? buildSnapshot(runtimeRecord, sessionStatsForRecord(runtimeRecord)) : undefined;
     const previewSnippet = runtimeSnapshot?.preview ?? previewFromSessionInfo(info);
     const archivedAt = runtimeSnapshot?.archivedAt ?? existingEntry?.archivedAt;
     const titleFromInfo = titleFromSessionInfo(info);
@@ -1980,7 +1981,7 @@ function sessionUpdatedEvent(record: ManagedSessionRecord): SessionDriverEvent {
     type: "sessionUpdated",
     sessionRef: record.ref,
     timestamp: record.updatedAt,
-    snapshot: buildSnapshot(record),
+    snapshot: buildSnapshot(record, sessionStatsForRecord(record)),
   };
 }
 
@@ -1992,4 +1993,18 @@ function toDriverEvents(
   const id = runId ?? record.runningRunId;
   const event = id ? { ...base, runId: id } : base;
   return [event, sessionUpdatedEvent(record)];
+}
+
+function sessionStatsForRecord(record: ManagedSessionRecord): UsageStats | undefined {
+  if (!record.session) return undefined;
+  const stats = record.session.getSessionStats();
+  return {
+    tokens: {
+      input: stats.tokens.input,
+      output: stats.tokens.output,
+      total: stats.tokens.total,
+    },
+    cost: stats.cost,
+    ...(stats.contextUsage ? { context: stats.contextUsage } : {}),
+  };
 }
