@@ -67,6 +67,7 @@ try {
   execFileSync(pnpmBinary, ["exec", "asar", "extract", asarPath, extractedDir], {
     cwd: desktopDir,
     stdio: "pipe",
+    shell: true,
   });
 
   verifyRequiredPackages(extractedDir);
