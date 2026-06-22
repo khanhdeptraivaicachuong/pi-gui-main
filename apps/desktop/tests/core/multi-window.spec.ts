@@ -27,8 +27,15 @@ async function waitForPiApp(window: Page): Promise<void> {
 async function waitForWindowCount(harness: DesktopHarness, count: number): Promise<void> {
   await expect
     .poll(
-      () =>
-        harness.electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length),
+      async () => {
+        try {
+          return await harness.electronApp.evaluate(
+            ({ BrowserWindow }) => BrowserWindow.getAllWindows().length,
+          );
+        } catch {
+          return -1;
+        }
+      },
       { timeout: 15_000 },
     )
     .toBe(count);
